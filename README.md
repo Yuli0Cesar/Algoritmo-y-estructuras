@@ -1,1 +1,1 @@
-5ta evaluacion de algoritmo y estructuras II en la carpeta
+5ta evaluacion de algoritmo y estructuras II en la carpeta ALGORITMOPARCIALV
