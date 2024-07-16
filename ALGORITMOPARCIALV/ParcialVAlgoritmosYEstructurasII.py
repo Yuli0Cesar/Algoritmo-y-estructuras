@@ -1,5 +1,6 @@
 import csv
 from datetime import datetime, timedelta
+import json
 
 class Node:
     def __init__(self, proyecto):
@@ -83,16 +84,98 @@ class AVLTree:
             return self.leftRotate(root)
 
         return root
-
-class Proyecto:
-    def __init__(self, id, nombre, gerente, fecha_inicio, fecha_fin, estado):
+    
+class Tarea:
+    def __init__(self, id, nombre, cliente_empresa, descripcion, fecha_inicio, fecha_vencimiento, estado, porcentaje):
         self.id = id
         self.nombre = nombre
-        self.gerente = gerente
+        self.cliente_empresa = cliente_empresa
+        self.descripcion = descripcion
         self.fecha_inicio = fecha_inicio
-        self.fecha_fin = fecha_fin
+        self.fecha_vencimiento = fecha_vencimiento
         self.estado = estado
-        self.dias_restantes = (fecha_fin - fecha_inicio).days
+        self.porcentaje = porcentaje
+        self.subtareas = []
+        self.nivel = 0
+
+    def agregar_subtarea(self, subtarea):
+        self.subtareas.append(subtarea)
+
+    def __str__(self):
+        return f"Tarea {self.id}: {self.nombre} ({self.estado})"
+    
+class subtarea:
+    def __init__(self, id, nombre, cliente_empresa, descripcion, fecha_inicio, fecha_vencimiento, estado, porcentaje):
+        self.id = id
+        self.nombre = nombre
+        self.descripcion = descripcion
+        self.estado = estado
+
+class ArbolDeTareas:
+    def __init__(self):
+        self.tareas = []
+
+    def agregar_tarea(self, tarea, padre=None, nivel=0):
+        tarea.nivel = nivel
+        self.tareas.append(tarea)
+        if padre:
+            padre.agregar_subtarea(tarea)
+
+    def obtener_tarea(self, id):
+        for tarea in self.tareas:
+            if tarea.id == id:
+                return tarea
+        return None
+
+    def listar_tareas_en_nivel(self, nivel):
+        tareas_en_nivel = []
+        for tarea in self.tareas:
+            if tarea.nivel == nivel:
+                tareas_en_nivel.append(tarea)
+        return tareas_en_nivel
+
+    def mostrar_subtareas(self, tarea):
+        print(f"Subtareas de {tarea.nombre}:")
+        for subtarea in tarea.subtareas:
+            print(f"  {subtarea.nombre}")
+
+    def serializar_a_json(self):
+        arbol_de_tareas_json = {"tareas": []}
+        for tarea in self.tareas:
+            tarea_json = {
+                "id": tarea.id,
+                "nombre": tarea.nombre,
+                "cliente_empresa": tarea.cliente_empresa,
+                "descripcion": tarea.descripcion,
+                "fecha_inicio": tarea.fecha_inicio,
+                "fecha_vencimiento": tarea.fecha_vencimiento,
+                "estado": tarea.estado,
+                "porcentaje": tarea.porcentaje,
+                "subtareas": []
+            }
+            for subtarea in tarea.subtareas:
+                tarea_json["subtareas"].append(subtarea.id)
+            arbol_de_tareas_json["tareas"].append(tarea_json)
+        return json.dumps(arbol_de_tareas_json)
+
+    def cargar_desde_json(self, cadena_json):
+        arbol_de_tareas_json = json.loads(cadena_json)
+        for tarea_json in arbol_de_tareas_json["tareas"]:
+            tarea = Tarea(
+                tarea_json["id"],
+                tarea_json["nombre"],
+                tarea_json["cliente_empresa"],
+                tarea_json["descripcion"],
+                tarea_json["fecha_inicio"],
+                tarea_json["fecha_vencimiento"],
+                tarea_json["estado"],
+                tarea_json["porcentaje"]
+            )
+            for subtarea_id in tarea_json["subtareas"]:
+                subtarea = self.obtener_tarea(subtarea_id)
+                if subtarea:
+                    tarea.agregar_subtarea(subtarea)
+            self.agregar_tarea(tarea)
 
 class EmpresaCliente:
     def __init__(self, id, nombre, descripcion, fecha_creacion, direccion, telefono, correo, gerente, equipo_contacto):
@@ -115,6 +198,57 @@ class EmpresaCliente:
 
     def eliminar_proyecto(self, proyecto):
         self.proyectos.remove(proyecto)
+
+class Proyecto:
+    def __init__(self, id, nombre, gerente, fecha_inicio, fecha_fin, estado):
+        self.id = id
+        self.nombre = nombre
+        self.gerente = gerente
+        self.fecha_inicio = fecha_inicio
+        self.fecha_fin = fecha_fin
+        self.estado = estado
+        self.dias_restantes = (fecha_fin - fecha_inicio).days
+        self.tareas = []
+
+class Task:
+    def __init__(self, id, name, client, description, start_date, 
+                 due_date, status, percentage):
+        self.id = id
+        self.name = name
+        self.client = client
+        self.description = description
+        self.start_date = start_date
+        self.due_date = due_date
+        self.status = status
+        self.percentage = percentage
+        self.subtask = []
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'client': self.client,
+            'description': self.description,
+            'start_date': self.start_date,
+            'due_date': self.due_date,
+            'status': self.status,
+            'percentage': self.percentage,
+            'subtasks': [subtask.to_dict() for subtask in self.subtasks]
+        }
+    
+    def from_dict(cls, data):
+        task = cls(
+            id=data['id'],
+            name=data['name'],
+            client=data['client'],
+            description=data['description'],
+            start_date=data['start_date'],
+            due_date=data['due_date'],
+            status=data['status'],
+            percentage=data['percentage']
+        )
+        task.subtasks = [cls.from_dict(subtask) for subtask in data['subtasks']]
+        return task
 
 def cargar_datos_desde_csv():
     empresas_clientes = []
@@ -319,6 +453,162 @@ def listar_proyectos(empresa_cliente):
         print(f"\nListado de Proyectos para {empresa_cliente.nombre}:")
         for nodo in empresa_cliente.proyectos:
             print(f"ID: {nodo.proyecto.id} - Nombre: {nodo.proyecto.nombre}")
+
+class Tarea:
+    def __init__(self, id, nombre, descripcion, estado):
+        self.id = id
+        self.nombre = nombre
+        self.descripcion = descripcion
+        self.estado = estado
+
+class LinkedList:
+    def __init__(self):
+        self.head = None
+
+    def append(self, tarea):
+        if not self.head:
+            self.head = tarea
+        else:
+            current = self.head
+            while current.next:
+                current = current.next
+            current.next = tarea
+
+    def to_list(self):
+        tarea_list = []
+        current = self.head
+        while current:
+            tarea_list.append(current)
+            current = current.next
+        return tarea_list
+
+class Sprint:
+    def __init__(self, id, nombre, fecha_inicio, fecha_fin, estado, objetivos, equipo):
+        self.id = id
+        self.nombre = nombre
+        self.fecha_inicio = fecha_inicio
+        self.fecha_fin = fecha_fin
+        self.estado = estado
+        self.objetivos = objetivos
+        self.equipo = equipo
+        self.tareas = LinkedList()
+
+    def agregar_tarea(self, tarea):
+        self.tareas.append(tarea)
+
+    def mostrar_tareas(self):
+        return self.tareas.to_list()
+
+class AVLNode:
+    def __init__(self, sprint):
+        self.sprint = sprint
+        self.left = None
+        self.right = None
+        self.height = 1
+
+class AVLTree:
+    def __init__(self):
+        self.root = None
+
+    def insert(self, sprint):
+        if not self.root:
+            self.root = AVLNode(sprint)
+        else:
+            self._insert(self.root, sprint)
+
+    def _insert(self, node, sprint):
+        if sprint.id < node.sprint.id:
+            if node.left:
+                self._insert(node.left, sprint)
+            else:
+                node.left = AVLNode(sprint)
+        else:
+            if node.right:
+                self._insert(node.right, sprint)
+            else:
+                node.right = AVLNode(sprint)
+
+    def show_sprints_at_level(self, level):
+        result = []
+        self._show_sprints_at_level(self.root, level, result)
+        return result
+
+    def _show_sprints_at_level(self, node, level, result):
+        if node:
+            if level == 0:
+                result.append(node.sprint)
+            else:
+                self._show_sprints_at_level(node.left, level - 1, result)
+                self._show_sprints_at_level(node.right, level - 1, result)
+
+    def show_subtareas(self, tarea_id):
+        result = []
+        self._show_subtareas(self.root, tarea_id, result)
+        return result
+
+    def _show_subtareas(self, node, tarea_id, result):
+        if node:
+            for tarea in node.sprint.tareas.to_list():
+                if tarea.id == tarea_id:
+                    result.append(tarea)
+                    for subtarea in tarea.subtareas:
+                        result.append(subtarea)
+                    return
+            self._show_subtareas(node.left, tarea_id, result)
+            self._show_subtareas(node.right, tarea_id, result)
+
+def load_data(file_path):
+    avl_tree = AVLTree()
+    with open(file_path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            sprint = Sprint(int(row['id']), row['nombre'], row['fecha_inicio'], row['fecha_fin'], row['estado'], row['objetivos'], row['equipo'])
+            avl_tree.insert(sprint)
+    return avl_tree
+
+def save_data(avl_tree, file_path):
+    with open(file_path, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['id', 'nombre', 'fecha_inicio', 'fecha_fin', 'estado', 'objetivos', 'equipo'])
+        for sprint in avl_tree.show_sprints_at_level(0):
+            writer.writerow([sprint.id, sprint.nombre, sprint.fecha_inicio, sprint.fecha_fin, sprint.estado, sprint.objetivos, sprint.equipo])
+
+def buscar_sprint(avl_tree, sprint_id):
+    current = avl_tree.root
+    while current:
+        if current.sprint.id == sprint_id:
+            return current.sprint
+        elif sprint_id < current.sprint.id:
+            current = current.left
+        else:
+            current = current.right
+    return None
+
+# Carga de datos
+avl_tree = load_data('data.csv')
+
+# Agregar tarea a un sprint
+sprint_id = 1
+tarea_id = 2
+sprint = buscar_sprint(avl_tree, sprint_id)
+if sprint:
+    tarea = Tarea(tarea_id, 'Tarea 2', 'Descripción de la tarea 2', 'pendiente')
+    sprint.agregar_tarea(tarea)
+else:
+    print("Sprint no encontrado")
+
+# Mostrar tareas de un sprint
+sprint_id = 1
+sprint = buscar_sprint(avl_tree, sprint_id)
+if sprint:
+    tareas = sprint.mostrar_tareas()
+    for tarea in tareas:
+        print(f"Tarea {tarea.id}: {tarea.nombre} - {tarea.descripcion} - {tarea.estado}")
+else:
+    print("Sprint no encontrado")
+
+# Guardar datos
+save_data(avl_tree, 'data.csv')
 
 def main():
     empresas_clientes = cargar_datos_desde_csv()
